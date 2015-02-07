@@ -1,4 +1,5 @@
 # configuration files
+*config.json
 grantsbot_settings.*
 matchbot_settings.*
 hostbot_settings.*
@@ -9,7 +10,7 @@ data/
 logs/
 modules/
 old_scripts/
-test*
+
 # crud
 *.DS_Store
 *.InterarchyMirrorCacheData
