@@ -12,31 +12,23 @@ for MatchBot.
 import json
 import time
 
+import utils
 
-def flowenabled(title, site):
-    """Find whether Flow is enabled on a given page.
-    Parameters:
-        title   :   a string containing the page title
-        site    :   a mwclient Site object associated with the page
 
-    Returns:
-        True    if Flow is enabled on the page
-        False   if Flow is not enabled on the page
-        None    if the page does not exist
-    """
+def get_page_title(pageid, site):
+    """ Get page title from page id. """
     query = site.api(action='query',
-                     titles=title,
-                     prop='flowinfo')
+                     prop='info',
+                     pageids=pageid)
     pagedict = query['query']['pages']
     for page in pagedict:
-        if page == '-1':
-            return None
-        else:
-            return (u'enabled' in pagedict[page]['flowinfo']['flow'])
+        title = pagedict[page]['title']
+    return title
 
 
-def getpagecreator(title, site):
-    """ Retrieve user information for the user who made the first edit
+def get_page_info(title, categories, site):
+    """ OUTDATED
+     Retrieve user information for the user who made the first edit
     to a page.
     Parameters:
         title   :   a string containing the page title
@@ -45,11 +37,17 @@ def getpagecreator(title, site):
     Returns:
         user    :   a string containing the page creator's user name
         userid  :   a string containing the page creator's userid
+
+        categories = list of dicts of the form {"ns": 14, "title": "Category:Blah"}
     """
+    category_string = utils.make_category_string(categories)
     query = site.api(action='query',
-                     prop='revisions',
+                     prop='revisions|info|categories',
                      rvprop='user|userid',
                      rvdir='newer',
+                     inprop='talkid',
+                     cllimit='max',
+                     clcategories=category_string,
                      titles=title,
                      rvlimit=1,
                      indexpageids="")
@@ -57,10 +55,12 @@ def getpagecreator(title, site):
     for page in pagedict:
         user = pagedict[page]['revisions'][0]['user']
         userid = pagedict[page]['revisions'][0]['userid']
-    return (user, userid)
+        talkid = pagedict[page].get('talkid')
+        page_categories = pagedict[page].get('categories')
+    return (user, userid, talkid, page_categories)
 
 
-def getnewmembers(categoryname, site, timelastchecked):
+def get_new_members(categoryname, site, timelastchecked):
     """Get information on all pages in a given category that have been
     added since a given time.
 
@@ -93,7 +93,7 @@ def getnewmembers(categoryname, site, timelastchecked):
             for arg in result['continue']:
                 newkwargs[arg] = result['continue'][arg]
             result = site.api(**newkwargs)
-            newcatmembers = makelearnerlist(result, categoryname,
+            newcatmembers = make_learner_list(result, categoryname,
                                             newcatmembers)
         else:
             break
@@ -101,7 +101,7 @@ def getnewmembers(categoryname, site, timelastchecked):
 
 
 
-def makelearnerlist(result, categoryname, catusers=None):
+def make_learner_list(result, categoryname, catusers=None):
     """Create a list of dicts containing information on each user from
     the getnewmembers API result.
 
@@ -122,15 +122,15 @@ def makelearnerlist(result, categoryname, catusers=None):
         pass
 
     for page in result['query']['categorymembers']:
-        userdict = {'profileid': page['pageid'],
-                    'profile': page['title'],
-                    'cattime': page['timestamp'],
+        userdict = {'profile_id': page['pageid'],
+                    'profile_title': page['title'],
+                    'cat_time': page['timestamp'],
                     'category': categoryname}
         catusers.append(userdict)
     return catusers
 
 
-def getallcatmembers(category, site):
+def get_all_cat_members(category, site):
     """Get information on all members of a given category
 
     Parameters:
@@ -187,30 +187,3 @@ def addmentorinfo(result, catmembers=None):
         userdict = {'profileid': page['pageid'], 'profile': page['title']}
         catmembers.append(userdict)
     return catmembers
-
-
-def postflow(page, topic, message, site):
-    """Post a new topic to a Flow board.
-    Parameters:
-        page    :   string containing the title of the page to post to
-        topic   :   string containing the new Flow topic
-        message :   string containing the message to post in the topic
-        site    :   logged-in mwclient Site object corresponding to
-                    the page
-
-    Returns the API POST result as a dictionary containing the post's
-    metadata.
-
-    If the bot has the appropriate permissions, this will create Flow
-    boards on empty pages.
-    """
-    token = site.get_token('csrf')
-    kwargs = {'action': 'flow',
-              'page': page,
-              'submodule': 'new-topic',
-              'token': token,
-              'nttopic': topic,
-              'ntcontent': message,
-              'ntmetadataonly': 'true'}
-    query = site.api(**kwargs)
-    return query

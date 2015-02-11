@@ -10,40 +10,72 @@ This is an early draft of the matching script for GrantsBot.
 """
 
 import datetime
+import json
 import sys
 import os
+import random
 
 import mwclient
 
 import mbapi
 import mblog
-from load_config import filepath, config
+import utils
 
-optoutcat = config['categories']['optout']
+
+"""optoutcat = config['categories']['optout']
 personcategories = config['categories']['personcats']
 ideacategories = config['categories']['ideacats']
+"""
 
-def parse_timestamp(t):
-    """Parse MediaWiki-style timestamps and return a datetime."""
-    if t == '0000-00-00T00:00:00Z':
-        return None
-    else:
-        return datetime.datetime.strptime(t, '%Y-%m-%dT%H:%M:%SZ')
+
+def timelog(run_time):
+    """Get the timestamp from the last run, then log the current time
+    (UTC).
+    """
+    timelogfile = os.path.join(filepath, 'time.log')
+    try:
+        with open(timelogfile, 'r+b') as timelog:
+            prevruntimestamp = timelog.read()
+            timelog.seek(0)
+            timelog.write(datetime.datetime.strftime(run_time,
+                                                     '%Y-%m-%dT%H:%M:%SZ'))
+            timelog.truncate()
+    except IOError:
+        with open(timelogfile, 'wb') as timelog:
+            prevruntimestamp = ''
+            timelog.write(datetime.datetime.strftime(run_time,
+                                                     '%Y-%m-%dT%H:%M:%SZ'))
+    return prevruntimestamp
+
+
+def login(creds):
+    # Initializing site + logging in
+    try:
+        site = mwclient.Site((creds['protocol'], creds['site']),
+                              clients_useragent=creds['useragent'])
+        site.login(creds['username'], creds['password'])
+        return site
+    except mwclient.LoginError as e:
+        mblog.logerror(u'Login failed for {}'.format(creds['username']),
+                       exc_info=True)
+        logged_errors = True
+        sys.exit()
+
 
 #TODO: check on mbapi.getnewmembers, getallcatmembers, mblog.logerror
-def getprofiles(prevruntimestamp, site)
+def getprofiles(prev_run_timestamp, categories, site):
     """
     Returns a dict of profiles.
     """
-    optedoutprofiles = mbapi.getallcatmembers(optoutcat, site)
-    for category in personcategories:
+    optedoutprofiles = mbapi.getallcatmembers(categories['optoutcat'], site)
+    for category in categories['person_categories']:
         try:
             newprofiles = mbapi.getnewmembers(category, site,
                                               prevruntimestamp)
             # this deduplicates (via overwriting but that's ok) as well as checking it's in the IdeaLab
-            profiles = {x['profiletitle']: x for x in newprofiles
-                        if x['profiletitle'].startswith(prefix)
-                        and x['profiletitle'] not in optedoutprofiles}
+            profiles = {x['profile_title']: x for x in newprofiles
+                        if x['profile_title'].startswith(prefix)
+                        and x['profile_title'] not in optedoutprofiles}
         except Exception as e:
             mblog.logerror('Could not fetch new profiles in {}'.format(
                 category), exc_info=True)
@@ -52,15 +84,37 @@ def getprofiles(prevruntimestamp, site)
 
 
 # figure out *something* about mbapi; have it return the desired information
-def getprofileinfo(profiles, site):
-    # some sort of call to mbapi to fill out the profile dicts
+def get_profile_info(profiles, categories, site):
     for profile in profiles:
-        x, y, z = mbapi.getxyz(profile, site)
-        profile[x], profile[y], profile[z] = x, y, z
+
+        ####### Am working on this, can get category info with the same call, need to parse resulting dict
+        page_info = get_page_info(profile, categories, site)
+        profile['username'], profile['userid'], profile['talk_id'] = page_info
+        profile['talk_title'] = get_profile_talk_page(
+            profile, profile['talk_id'], site)
+
+        profile['skill'], profile['interest'] = None, None
+        for category in page_categories:
+            if category['title'] in categories['skills']:
+                profile['skill'] = category
+            if category['title'] in categories['interests']:
+                profile['interest'] = category
+
     # handle errors here per getlearnerinfo
     return profiles
 
 
+def get_profile_talk_page(profile, talk_id, site):
+    """Get the talk page for a profile (a sub-page of the Co-op)."""
+    if talk_id:
+        talkpage = mbapi.get_page_title(talk_id, site)
+    else:
+        talkpage = talkprefix + profile.lstrip(prefix) #FIXME avoid globals
+    return talkpage
+
+
+#########
+# this is currently made of magic and unicorn sparkles; may be pulling from a db either with subqueries or not
 def getideas(ideas, skill, topic, site):
     # where do I filter on?
     # also lazy-load ideas[topic][skill];
@@ -81,11 +135,13 @@ def getideainfo(ideas, site):
     return ideas
 
 
-# TODO: figure out how to make a list sorted on a parameter from a list of dicts
-# OR decide to get the API to sort for us and not need this
-def chooseideas(idealist):
-    # given ideas choose the "best" ones according to criteria and also magic
-    pass
+def choose_ideas(ideas, number_to_choose):
+    """ Returns a randomly chosen list of ideas."""
+    try:
+        return random.sample(ideas, number_to_choose)
+    # this is raised if number_to_choose is larger than the list, or negative
+    except ValueError:
+        return ideas
 
 
 def buildgreeting(username, skill, topic, ideas):
@@ -110,12 +166,6 @@ def buildgreeting(username, skill, topic, ideas):
     return (greeting, topic)
 
 
-def getprofiletalkpage(profile):
-    """Get the talk page for a profile (a sub-page of the Co-op)."""
-    talkpage = talkprefix + profile.lstrip(prefix)
-    return talkpage
-
-
 def postinvite(pagetitle, greeting, topic, username, site):
     profile = site.Pages[pagetitle]
     addedtext = config['greetings']['template'].format(topic,
@@ -126,7 +176,14 @@ def postinvite(pagetitle, greeting, topic, username, site):
 
 
 def main():
-    # Get last time run, save time of run to log
+
+    if len(sys.argv) > 1:
+        filepath = sys.argv[1]
+    else:
+        filepath = './matching/'
+
+    config = utils.load_config(filepath)
+
     try:
         prevruntimestamp = timelog(run_time)
     except Exception as e:
@@ -134,22 +191,7 @@ def main():
         logged_errors = True
         sys.exit()
 
-    # Initializing site + logging in
-    login = config['login']
-    try:
-        site = mwclient.Site((login['protocol'], login['site']),
-                              clients_useragent=login['useragent'])
-        site.login(login['username'], login['password'])
-
-    except mwclient.LoginError as e:
-        mblog.logerror(u'Login failed for {}'.format(login['username']),
-                       exc_info=True)
-        logged_errors = True
-        sys.exit()
-
-# fetch new profiles:
-# list of profiles; relevant information about them?
-# TODO what's relevant?
+    site = login(config['login'])
     newprofiles = getprofileinfo(getprofiles(prevruntimestamp, site), site)
     """ Profile structure:
     {profiletitle: {'username': , 'userid': , 'skill': , 'interest': , 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
@@ -165,20 +207,16 @@ def main():
 # get a bunch of information about the ideas (activity, how recent; basically, anything I might want to filter on)
     ideas = {}
 # load info for default ideas? maybe not, actually
-    ideas = getideainfo(getideas(ideas, None, None, site)
+    ideas = getideainfo(getideas(ideas, None, None, site))
 
-    """
-    ideas = {topic:
+    """ ideas = {topic:
                 {skill1:
                     [{title: , lastedited: datetime, ??? (activity level numbers here?, anything needed for selecting ideas)}, ... ],
                  skill2: [...]},
              topic2:
                 {skill1: [],
                  skill2: []}
-            }
-
-
-    """
+            }  """
 
     for profile in newprofiles:
 
@@ -196,10 +234,10 @@ def main():
         # lazy loading of ideas. check if skill is in ideas[topic] and if not, load; if it is (even if falsy) it has been checked
         # fetch all relevant ideas
         # get matches from ideas fetched
-        finalideas = chooseideas(idealist)
+        finalideas = choose_ideas(idealist)
 
         try:
-            greeting, topic = buildgreeting(profile['username'], etc. and so forth, topic, skill, FIXME)
+            greeting, topic = buildgreeting(profile['username'])
 
         except Exception as e:
             mblog.logerror(u'Could not create a greeting for {}'.format(
@@ -221,7 +259,7 @@ def main():
         try:
             revid, matchtime = response['revid'], response['timeposted'] #or whatever
             #needed?
-            cataddtime = parse_timestamp(learner['cattime'])
+            cataddtime = utils.parse_timestamp(learner['cattime'])
             mblog.logmatch(luid=learner['luid'], lprofileid=learner['profileid'],
                            muid=muid, category=skill, cataddtime=cataddtime,
                            matchtime=matchtime, matchmade=matchmade,

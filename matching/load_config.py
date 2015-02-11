@@ -15,7 +15,7 @@ import os
 if len(sys.argv) > 1:
     filepath = sys.argv[1]
 else:
-    filepath = './matchbot/'
+    filepath = './matching/'
 
 configfile = os.path.join(filepath, 'config.json')
 with open(configfile, 'rb') as configf:

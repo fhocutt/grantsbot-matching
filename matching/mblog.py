@@ -92,11 +92,15 @@ def logmatch(luid, lprofileid, category, muid, matchtime,
                         autoload_with=engine)
     ins = matches.insert()
     conn = engine.connect()
-    conn.execute(ins, {'luid': luid, 'lprofileid': lprofileid,
-                       'category': category, 'muid': muid,
-                       'matchtime': matchtime, 'cataddtime': cataddtime,
-                       'revid': revid, 'postid': postid,
-                       'matchmade': matchmade, 'run_time': run_time})
+    conn.execute(ins, {'participant_userid': luid,
+                       'p_profile_pageid': lprofileid,
+                       'p_interest': interest,
+                       'p_skill': skill,
+                       'request_time': request_time,
+                       'match_time': match_time,
+                       'match_revid': revid,
+                       'idea_pageid': idea_pageid,
+                       'run_time': run_time})
 
 
 def makeconnstr():
