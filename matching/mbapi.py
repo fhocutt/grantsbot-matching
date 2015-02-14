@@ -85,7 +85,7 @@ def get_new_members(categoryname, site, timelastchecked):
                     'cmdir': 'older',
                     'cmend': timelastchecked}
     result = site.api(**recentkwargs)
-    newcatmembers = makelearnerlist(result, categoryname)
+    newcatmembers = make_learner_list(result, categoryname)
 
     while True:
         if 'continue' in result:
@@ -130,7 +130,12 @@ def make_learner_list(result, categoryname, catusers=None):
     return catusers
 
 
-def get_all_cat_members(category, site):
+def get_ideas(interest, skill, site):
+    interest_ideas = get_all_cat_members(interest, site)
+    skill_ideas = get_all_cat_members(skill, site)
+
+
+def get_all_category_members(category, site):
     """Get information on all members of a given category
 
     Parameters:
@@ -151,7 +156,6 @@ def get_all_cat_members(category, site):
               'cmlimit': 'max'}
     result = site.api(**kwargs)
     catmembers = addmentorinfo(result)
-
     while True:
         if 'continue' in result:
             newkwargs = kwargs.copy()
@@ -184,6 +188,6 @@ def addmentorinfo(result, catmembers=None):
         pass
 
     for page in result['query']['categorymembers']:
-        userdict = {'profileid': page['pageid'], 'profile': page['title']}
+        userdict = {'profileid': page['pageid'], 'profile_title': page['title']}
         catmembers.append(userdict)
     return catmembers

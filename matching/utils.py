@@ -5,6 +5,11 @@
 Utility functions for matching.py.
 """
 
+import datetime
+import json
+import os
+import mbapi
+
 def parse_timestamp(t):
     """Parse MediaWiki-style timestamps and return a datetime."""
     if t == '0000-00-00T00:00:00Z':

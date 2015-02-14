@@ -17,6 +17,7 @@ import os
 
 import sqlalchemy as sqa
 
+import sqlutils
 from load_config import config, filepath
 
 # possibly hacky
@@ -64,8 +65,7 @@ def logerror(message, exc_info=False):
     logger.error(message, exc_info=exc_info)
 
 
-def logmatch(luid, lprofileid, category, muid, matchtime,
-             cataddtime, matchmade, run_time, revid=None, postid=None):
+def logmatch(match_info):
     """Log information about the match to a relational database.
 
     Parameters:
@@ -85,30 +85,12 @@ def logmatch(luid, lprofileid, category, muid, matchtime,
         postid      :   int. If a Flow board, the post-revision-id after
                         posting the new topic for the match.
     """
-    conn_str = makeconnstr()
+#    conn_str = sqlutils.makeconnstr(dbinfo, matches)
+    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()
     matches = sqa.Table('matches', metadata, autoload=True,
                         autoload_with=engine)
     ins = matches.insert()
     conn = engine.connect()
-    conn.execute(ins, {'participant_userid': luid,
-                       'p_profile_pageid': lprofileid,
-                       'p_interest': interest,
-                       'p_skill': skill,
-                       'request_time': request_time,
-                       'match_time': match_time,
-                       'match_revid': revid,
-                       'idea_pageid': idea_pageid,
-                       'run_time': run_time})
-
-
-def makeconnstr():
-    """Return a string with MySQL DB connecting information."""
-    username = config['dbinfo']['username']
-    password = config['dbinfo']['password']
-    host = config['dbinfo']['host']
-    dbname = config['dbinfo']['dbname']
-    conn_str = 'mysql://{}:{}@{}/{}?charset=utf8&use_unicode=0'.format(
-        username, password, host, dbname)
-    return conn_str
+    conn.execute(ins, match_info)
