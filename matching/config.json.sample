@@ -1,28 +1,34 @@
 {
     "categories": {
-        "general": "Category:Co-op mentors with general editing skills",
-        "optout": "Category:Co-op mentor not taking new requests",
-        "skillslist": [
-            "best practices",
-            "communication",
-            "writing",
-            "general editing skills",
-            "technical editing"
-        ],
-        "requestcategories": [
-            "Category:Co-op/Requests/Best practices",
-            "Category:Co-op/Requests/Communication",
-            "Category:Co-op/Requests/Writing",
-            "Category:Co-op/Requests/Other",
-            "Category:Co-op/Requests/Technical editing"
-        ],
-        "mentorcategories": [
-            "Category:Co-op mentors with best practice skills",
-            "Category:Co-op mentors with communication skills",
-            "Category:Co-op mentors with writing skills",
-            "Category:Co-op mentors with general editing skills",
-            "Category:Co-op mentors with technical editing skills"
-        ]
+        "ideas": {
+            "all ideas": "Category:IdeaLab/Ideas/IdeaLab",
+            "skills": [
+                "Category:IdeaLab/Ideas/Developer/Wanted",
+                "Category:IdeaLab/Ideas/Designer/Wanted",
+                "Category:IdeaLab/Ideas/Community organizer/Wanted",
+                "Category:IdeaLab/Ideas/Researcher/Wanted",
+                "Category:IdeaLab/Ideas/Project manager/Wanted"
+            ],
+            "topics": [
+                "Category:IdeaLab/Ideas/Gender gap",
+                "Category:IdeaLab/Ideas/Global south"
+            ]
+        },
+        "people": {
+            "all": "Category:IdeaLab members",
+            "optout": "Category:No GrantsBot recommendations please",
+            "skills": [
+                "Category:IdeaLab members with programming experience",
+                "Category:IdeaLab members with design experience",
+                "Category:IdeaLab members with community organizing experience",
+                "Category:IdeaLab members with research experience",
+                "Category:IdeaLab members with project management experience"
+            ],
+            "topics": [
+                "Category:Interested in gender gap grant ideas",
+                "Category:Interested in global south grant ideas"
+            ]
+        }
     },
     "dbinfo": {
         "dbname": "DATABASENAME",
@@ -32,22 +38,19 @@
     },
     "defaultmentorprofile": "Wikipedia:Co-op/DEFAULT",
     "greetings": {
-        "matchgreeting": "Thank you for your interest in the Co-op. [[User:{0}|{0}]] has listed \"{1}\" in their mentorship profile. Leave them a message on their talk page and see if you want to work together!",
-        "matchtopic": "Welcome to the Co-op! We have a mentor for you.",
-        "noflowtemplate": "\n\n=={0}==\nHello, [[User:{1}|{1}]]! {2} ~~~~",
-        "nomatchgreeting": "Sorry, we don't have a match for you. [[User:{0}|{0}]] will be in touch with you to find you one.",
-        "nomatchtopic": "Welcome to the Co-op!"
+        "section": "Ideas!",
+        "greeting": "Welcome to the IdeaLab, [[User:{0}|{0}]]! Here are some ideas that you may want to check out:\n{1}Take a look and endorse them, help improve them, or spread the word. --~~~~"
     },
     "login": {
         "password": "YOURBOTPASSWORD",
         "protocol": "https",
-        "site": "test.wikipedia.org",
+        "site": "meta.wikimedia.org",
         "useragent": "MatchBot, based on mwclient v0.7.2dev. Run by User:YOURNAME, YOUREMAIL",
         "username": "YOURBOTNAME"
     },
     "pages": {
-        "main": "Wikipedia:Co-op",
-        "talk": "Wikipedia talk:Co-op"
+        "main": "Grants:IdeaLab",
+        "talk": "Grants talk:IdeaLab"
     },
     "help": "Please see README.md for information on this configuration file."
 }
