@@ -18,13 +18,11 @@ import os
 import sqlalchemy as sqa
 
 import sqlutils
-from load_config import config, filepath
 
 # possibly hacky
-logpath = os.path.join(filepath, 'log')
 
 
-def logrun(run_time, edited_pages, wrote_db, logged_errors):
+def logrun(run_time, edited_pages, wrote_db, logged_errors, filepath):
     """Log information for each run to external log files.
 
     Parameters:
@@ -38,6 +36,9 @@ def logrun(run_time, edited_pages, wrote_db, logged_errors):
 
     Rotating logs will each be used for 30 d. Two backup logs are kept.
     """
+
+    logpath = os.path.join(filepath, 'log')
+
     message = '{0}\tEdited: {1}\tWrote DB: {2}\tErrors: {3}'.format(
         run_time, edited_pages, wrote_db, logged_errors)
     logger = logging.getLogger(__name__)
@@ -56,6 +57,9 @@ def logrun(run_time, edited_pages, wrote_db, logged_errors):
 def logerror(message, exc_info=False):
     """Log information when an error occurs to an external log file.
     """
+
+    logpath = os.path.join(filepath, 'log')
+
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -65,7 +69,7 @@ def logerror(message, exc_info=False):
     logger.error(message, exc_info=exc_info)
 
 
-def logmatch(match_info):
+def logmatch(match_info, db_info):
     """Log information about the match to a relational database.
 
     Parameters:
@@ -85,7 +89,7 @@ def logmatch(match_info):
         postid      :   int. If a Flow board, the post-revision-id after
                         posting the new topic for the match.
     """
-#    conn_str = sqlutils.makeconnstr(dbinfo, matches)
+#    conn_str = sqlutils.makeconnstr(db_info)
     conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()

@@ -26,7 +26,7 @@ def timelog(run_time):
     """Get the timestamp from the last run, then log the current time
     (UTC).
     """
-    timelogfile = os.path.join(filepath, 'time.log')
+    timelogfile = os.path.join(filepath, 'time.log') # fixme this currently only works because filepath is in the enclosing scope (main)
     try:
         with open(timelogfile, 'r+b') as timelog:
             prevruntimestamp = timelog.read()
@@ -300,7 +300,7 @@ def main(filepath):
 
         try:
             match_info = collect_match_info(response, new_profiles[profile], final_ideas, run_time)
-            mblog.logmatch(match_info)
+            mblog.logmatch(match_info, config['dbinfo'])
             wrote_db = True
         except Exception as e:
             mblog.logerror(u'Could not write to DB for {}'.format(
@@ -309,7 +309,7 @@ def main(filepath):
             continue
 
     try:
-        mblog.logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False)
+        mblog.logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False, filepath=filepath)
     except Exception as e:
         mblog.logerror(u'Could not log run at {}'.format(run_time),
             exc_info=True)
