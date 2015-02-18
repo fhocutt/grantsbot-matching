@@ -22,25 +22,6 @@ import mblog
 import utils
 import sqlutils
 
-def timelog(run_time):
-    """Get the timestamp from the last run, then log the current time
-    (UTC).
-    """
-    timelogfile = os.path.join(filepath, 'time.log') # fixme this currently only works because filepath is in the enclosing scope (main)
-    try:
-        with open(timelogfile, 'r+b') as timelog:
-            prevruntimestamp = timelog.read()
-            timelog.seek(0)
-            timelog.write(datetime.datetime.strftime(run_time,
-                                                     '%Y-%m-%dT%H:%M:%SZ'))
-            timelog.truncate()
-    except IOError:
-        with open(timelogfile, 'wb') as timelog:
-            prevruntimestamp = ''
-            timelog.write(datetime.datetime.strftime(run_time,
-                                                     '%Y-%m-%dT%H:%M:%SZ'))
-    return prevruntimestamp
-
 
 def login(creds):
     # Initializing site + logging in
@@ -83,6 +64,9 @@ def filter_profiles(new_profiles, opted_out_profiles, prefix):
 
 
 def get_profile_info(profiles, categories, prefixes, site):
+    """ Profile structure:
+    {profiletitle: {'username': , 'userid': , 'skill': , 'interest': , 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
+    """
     for profile in profiles:
         personcats = (categories['people']['skills']
             + categories['people']['topics'])
@@ -133,7 +117,11 @@ def get_active_ideas(run_time, config):
 
 
 def get_ideas_by_category(ideas, interest, skill, site, categories):
-    """
+    """ ideas = {topic1: [{profile: x, profile_id: y}, ...],
+                 skill1: [...],
+                 skill2: [...],
+                ...
+                }
     """
     interest_dict = {k: v for k, v in zip(categories['people']['topics'], categories['ideas']['topics'])}
     skill_dict = {k: v for k, v in zip(categories['people']['skills'], categories['ideas']['skills'])}
@@ -180,18 +168,8 @@ def choose_ideas(ideas, number_to_choose):
         return ideas
 
 
-def buildgreeting(greeting, username, ideas):
-    """Create a customized greeting string to be posted to a talk page
-    to introduce a potential mentor to a learner.
-
-    Return the greeting.
-    """
-    idea_string = ''
-    for idea in ideas:
-        title = idea['profile_title']
-        idea_string = '{}* [[{}]]\n'.format(idea_string, title)
-    full_greeting = greeting.format(username, idea_string)
-    return full_greeting
+def get_more_ideas():
+    pass
 
 
 def postinvite(pagetitle, greeting, topic, site):
@@ -203,16 +181,16 @@ def postinvite(pagetitle, greeting, topic, site):
 
 def collect_match_info(response, profile_dict, matched_ideas, run_time):
     """
-    participant_userid INTEGER, 
-    p_profile_pageid INTEGER, 
-    p_interest VARCHAR(75), 
-    p_skill VARCHAR(75), 
-    request_time DATETIME, 
-    match_time DATETIME, 
-    match_revid INTEGER, 
-    idea_pageid INTEGER, 
+    participant_userid INTEGER,
+    p_profile_pageid INTEGER,
+    p_interest VARCHAR(75),
+    p_skill VARCHAR(75),
+    request_time DATETIME,
+    match_time DATETIME,
+    match_revid INTEGER,
+    idea_pageid INTEGER,
     run_time DATETIME,"""
-    
+
     match_info = []
     for idea in matched_ideas:
         match_info.append({
@@ -232,8 +210,11 @@ def collect_match_info(response, profile_dict, matched_ideas, run_time):
 def main(filepath):
     run_time = datetime.datetime.utcnow()
     config = utils.load_config(filepath)
+    edited_pages = False
+    wrote_db = False
+    logged_errors = False
     try:
-        prevruntimestamp = timelog(run_time)
+        prevruntimestamp = utils.timelog(run_time, filepath)
     except Exception as e:
         mblog.logerror(u'Could not get time of previous run', exc_info=True)
         logged_errors = True
@@ -242,24 +223,11 @@ def main(filepath):
     site = login(config['login'])
 
     profile_lists = get_profiles(prevruntimestamp, config['categories'], site)
-
     bare_profiles = filter_profiles(profile_lists[0], profile_lists[1], config['pages']['main'])
-
     new_profiles = get_profile_info(bare_profiles, config['categories'], config['pages'], site)
-
-    """ Profile structure:
-    {profiletitle: {'username': , 'userid': , 'skill': , 'interest': , 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
-    """
 
     active_ideas = get_active_ideas(run_time, config)
     ideas = {}
-
-    """ ideas = {topic1: [{profile: x, profile_id: y}, ...],
-                 skill1: [...],
-                 skill2: [...],
-                ...
-                }
-    """
 
     for profile in new_profiles:
         skill = new_profiles[profile]['skill']
@@ -268,37 +236,17 @@ def main(filepath):
         idea_list = get_ideas_by_category(ideas, interest, skill, site, config['categories'])
         active_idea_list = filter_ideas(idea_list, active_ideas)
         final_ideas = choose_ideas(active_idea_list, 3)
-#        print('both', idea_list)
-#        print('skill', get_ideas_by_category(ideas, None, skill, site, config['categories']))
-#        print('interest', get_ideas_by_category(ideas, interest, None, site, config['categories']))
-#        print('all', get_ideas_by_category(ideas, None, None, site, config['categories']))
 
-
+        if len(final_ideas) < 3:
+            get_more_ideas()
         # TODO: what if there aren't enough ideas?
-#        if idealist is []:
-#            idealist = filter_ideas(getideas(ideas, None, interest, site), active_ideas)
 
-#        if idea_list is []:
-#            idea_list = filter_ideas(get_ideas(ideas, skill, None, site), active_ideas)
+        greeting = utils.buildgreeting(config['greetings']['greeting'], new_profiles[profile]['username'], final_ideas)
 
-#        if idealist is []:
-#            idea_list = filter_ideas(getideas(ideas, None, None, site), active_ideas)
-
-        # get matches from ideas fetched
-
-        try:
-            greeting = buildgreeting(config['greetings']['greeting'], new_profiles[profile]['username'], final_ideas)
-        except Exception as e:
-            mblog.logerror(u'Could not create a greeting for {}'.format(
-                learner['learner']), exc_info=True)
-            logged_errors = True
-            continue
-
-#        response = postinvite('Meta:Sandbox', greeting, 'New ideas', site)
         try:
             response = postinvite(new_profiles[profile]['talk_title'], greeting, 'Ideas for you', site)
             edited_pages = True
-        except Exception as e:
+        except mwclient.MwClientError as e:
             mblog.logerror(u'Could not post match on {}\'s page'.format(
                 profile['username']), exc_info=True)
             logged_errors = True
@@ -306,7 +254,7 @@ def main(filepath):
 
         try:
             match_info = collect_match_info(response, new_profiles[profile], final_ideas, run_time)
-            mblog.logmatch(match_info, config['dbinfo'])
+            sqlutils.logmatch(match_info, config['dbinfo'])
             wrote_db = True
         except Exception as e:
             mblog.logerror(u'Could not write to DB for {}'.format(
@@ -314,11 +262,7 @@ def main(filepath):
             logged_errors = True
             continue
 
-    try:
-        mblog.logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False, filepath=filepath)
-    except Exception as e:
-        mblog.logerror(u'Could not log run at {}'.format(run_time), filepath,
-            exc_info=True)
+    mblog.logrun(filepath, run_time, edited_pages, wrote_db, logged_errors)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,14 @@ def test_parse_timestamp():
     assert matchbot.parse_timestamp('2010-10-10T01:01:10Z') == datetime.datetime(2010, 10, 10, 01, 01, 10)
 
 
+def test_get_ideas_by_category():
+#    print('both', idea_list)
+#    print('skill', get_ideas_by_category(ideas, None, skill, site, config['categories']))
+#    print('interest', get_ideas_by_category(ideas, interest, None, site, config['categories']))
+#    print('all', get_ideas_by_category(ideas, None, None, site, config['categories']))
+    pass
+
+
 def test_get_profile_talkpage():
     pass
 
