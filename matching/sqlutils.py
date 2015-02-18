@@ -19,8 +19,10 @@ def get_filtered_ideas(db_info):
     metadata = sqa.MetaData()
     ideas = sqa.Table('idealab_ideas', metadata, autoload=True,
                         autoload_with=engine)
-    s = select([ideas.c.idea_title]).where(and_(ideas.c.idea_recent_editors > 1,
-        ideas.c.idea_created > (datetime.datetime.utcnow() - datetime.timedelta(days=90))))
+#    s = select([ideas.c.idea_title]).where(and_(ideas.c.idea_recent_editors > 1,
+#        ideas.c.idea_created > (datetime.datetime.utcnow() - datetime.timedelta(days=90))))
+    s = select([ideas.c.idea_title]).where(and_(and_(ideas.c.idea_recent_editors >= 1,
+        ideas.c.idea_created > (datetime.datetime.utcnow() - datetime.timedelta(days=90))), ideas.c.ignore == 0))
     conn = engine.connect()
     result = conn.execute(s)
     data = result.fetchall()
@@ -28,7 +30,7 @@ def get_filtered_ideas(db_info):
 
 
 def logmatch(match_info, db_info):
-    conn_str = sqlutils.makeconnstr(db_info)
+    conn_str = makeconnstr(db_info)
 #    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()

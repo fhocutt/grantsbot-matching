@@ -60,6 +60,7 @@ def get_page_info(title, categories, site):
 
 
 def parse_page_info_response(response):
+    pagedict = response['query']['pages']
     for page in pagedict:
         user = pagedict[page]['revisions'][0]['user']
         userid = pagedict[page]['revisions'][0]['userid']

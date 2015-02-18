@@ -16,7 +16,7 @@ import sys
 import os
 
 
-def logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False, filepath):
+def logrun(filepath, run_time, edited_pages=False, wrote_db=False, logged_errors=False):
     """Log information for each run to external log files.
 
     Parameters:

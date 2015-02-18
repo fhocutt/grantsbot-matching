@@ -42,13 +42,10 @@ def get_profiles(prev_run_timestamp, categories, site):
     Returns a dict of profiles.
     """
     opted_out_profiles = mbapi.get_all_category_members(categories['people']['optout'], site)
-    print opted_out_profiles
     all_categories = categories['people']['skills'] + categories['people']['topics']
-    print all_categories
     new_profiles = []
     for category in all_categories:
         new_profiles = new_profiles + mbapi.get_new_members(category, site, prev_run_timestamp)
-    print new_profiles
     return (new_profiles, opted_out_profiles)
 
 
@@ -72,6 +69,7 @@ def get_profile_info(profiles, categories, prefixes, site):
             + categories['people']['topics'])
 
         page_info = mbapi.get_page_info(profile, personcats, site)
+        print(page_info)
         username, userid, talk_id, page_categories = page_info
 
         # FIXME: could probably refactor this
@@ -210,6 +208,9 @@ def collect_match_info(response, profile_dict, matched_ideas, run_time):
 def main(filepath):
     run_time = datetime.datetime.utcnow()
     config = utils.load_config(filepath)
+    edited_pages = False
+    wrote_db = False
+    logged_errors = False
     try:
         prevruntimestamp = utils.timelog(run_time, filepath)
     except Exception as e:
@@ -222,6 +223,7 @@ def main(filepath):
     profile_lists = get_profiles(prevruntimestamp, config['categories'], site)
     bare_profiles = filter_profiles(profile_lists[0], profile_lists[1], config['pages']['main'])
     new_profiles = get_profile_info(bare_profiles, config['categories'], config['pages'], site)
+    print(new_profiles)
 
     active_ideas = get_active_ideas(run_time, config)
     ideas = {}
@@ -249,17 +251,19 @@ def main(filepath):
             logged_errors = True
             continue
 
+        match_info = collect_match_info(response, new_profiles[profile], final_ideas, run_time)
+        sqlutils.logmatch(match_info, config['dbinfo'])
+        wrote_db = True
+
         try:
-            match_info = collect_match_info(response, new_profiles[profile], final_ideas, run_time)
-            sqlutils.logmatch(match_info, config['dbinfo'])
-            wrote_db = True
+            pass
         except Exception as e:
             mblog.logerror(u'Could not write to DB for {}'.format(
                 learner['learner']), exc_info=True)
             logged_errors = True
             continue
-
-    mblog.logrun(run_time, edited_pages, wrote_db, logged_errors, filepath)
+    print ideas
+    mblog.logrun(filepath, run_time, edited_pages, wrote_db, logged_errors)
 
 
 if __name__ == '__main__':
