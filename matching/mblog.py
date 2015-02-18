@@ -15,14 +15,8 @@ import logging.handlers
 import sys
 import os
 
-import sqlalchemy as sqa
 
-import sqlutils
-
-# possibly hacky
-
-
-def logrun(run_time, edited_pages, wrote_db, logged_errors, filepath):
+def logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False, filepath):
     """Log information for each run to external log files.
 
     Parameters:
@@ -67,34 +61,3 @@ def logerror(message, filepath, exc_info=False):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.error(message, exc_info=exc_info)
-
-
-def logmatch(match_info, db_info):
-    """Log information about the match to a relational database.
-
-    Parameters:
-        luid        :   int. Learner's userid.
-        lprofile    :   int. Pageid for the learner's profile.
-        category    :   string. Category from the learner's profile that
-                        they were matched on.
-        muid        :   int. Mentor's userid.
-        matchtime   :   datetime. Time the match was posted on learner's
-                        profile talk page.
-        cataddtime  :   datetime. Time the category was added to the
-                        learner's profile page.
-        matchmade   :   boolean. True if a specific mentor was found
-        run_time    :   datetime. time the script started running
-        revid       :   int. If not a Flow board, the new revid after
-                        posting the new match.
-        postid      :   int. If a Flow board, the post-revision-id after
-                        posting the new topic for the match.
-    """
-    conn_str = sqlutils.makeconnstr(db_info)
-#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
-    engine = sqa.create_engine(conn_str, echo=True)
-    metadata = sqa.MetaData()
-    matches = sqa.Table('matches', metadata, autoload=True,
-                        autoload_with=engine)
-    ins = matches.insert()
-    conn = engine.connect()
-    conn.execute(ins, match_info)

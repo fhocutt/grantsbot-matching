@@ -17,10 +17,15 @@ import utils
 
 def get_page_title(pageid, site):
     """ Get page title from page id. """
-    query = site.api(action='query',
-                     prop='info',
-                     pageids=pageid)
-    pagedict = query['query']['pages']
+    response = site.api(action='query',
+                        prop='info',
+                        pageids=pageid)
+    title = parse_page_title_response(response)
+    return title
+
+
+def parse_page_title_response(response):
+    pagedict = response['query']['pages']
     for page in pagedict:
         title = pagedict[page]['title']
     return title
@@ -41,17 +46,20 @@ def get_page_info(title, categories, site):
         categories = list of dicts of the form {"ns": 14, "title": "Category:Blah"}
     """
     category_string = utils.make_category_string(categories)
-    query = site.api(action='query',
-                     prop='revisions|info|categories',
-                     rvprop='user|userid',
-                     rvdir='newer',
-                     inprop='talkid',
-                     cllimit='max',
-                     clcategories=category_string,
-                     titles=title,
-                     rvlimit=1,
-                     indexpageids="")
-    pagedict = query['query']['pages']
+    response = site.api(action='query',
+                        prop='revisions|info|categories',
+                        rvprop='user|userid',
+                        rvdir='newer',
+                        inprop='talkid',
+                        cllimit='max',
+                        clcategories=category_string,
+                        titles=title,
+                        rvlimit=1)
+    page_info = parse_page_info_response(response)
+    return page_info
+
+
+def parse_page_info_response(response):
     for page in pagedict:
         user = pagedict[page]['revisions'][0]['user']
         userid = pagedict[page]['revisions'][0]['userid']
@@ -85,7 +93,7 @@ def get_new_members(categoryname, site, timelastchecked):
                     'cmdir': 'older',
                     'cmend': timelastchecked}
     result = site.api(**recentkwargs)
-    newcatmembers = make_learner_list(result, categoryname)
+    newcatmembers = add_members_to_list(result, categoryname)
 
     while True:
         if 'continue' in result:
@@ -93,15 +101,14 @@ def get_new_members(categoryname, site, timelastchecked):
             for arg in result['continue']:
                 newkwargs[arg] = result['continue'][arg]
             result = site.api(**newkwargs)
-            newcatmembers = make_learner_list(result, categoryname,
+            newcatmembers = add_members_to_list(result, categoryname,
                                             newcatmembers)
         else:
             break
     return newcatmembers
 
 
-
-def make_learner_list(result, categoryname, catusers=None):
+def add_members_to_list(result, categoryname, catusers=None):
     """Create a list of dicts containing information on each user from
     the getnewmembers API result.
 
@@ -128,11 +135,6 @@ def make_learner_list(result, categoryname, catusers=None):
                     'category': categoryname}
         catusers.append(userdict)
     return catusers
-
-
-def get_ideas(interest, skill, site):
-    interest_ideas = get_all_cat_members(interest, site)
-    skill_ideas = get_all_cat_members(skill, site)
 
 
 def get_all_category_members(category, site):
