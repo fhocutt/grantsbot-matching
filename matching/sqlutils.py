@@ -12,9 +12,9 @@ import datetime
 import sqlalchemy as sqa
 from sqlalchemy.sql import select, and_
 
-def get_filtered_ideas():
-#    conn_str = sqlutils.makeconnstr()
-    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
+def get_filtered_ideas(db_info):
+    conn_str = makeconnstr(db_info)
+#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()
     ideas = sqa.Table('idealab_ideas', metadata, autoload=True,
@@ -29,7 +29,7 @@ def get_filtered_ideas():
 
 def makeconnstr(dbinfo):
     """Return a string with MySQL DB connecting information."""
-    username = dbinfo['username']
+    username = dbinfo['user']
     password = dbinfo['password']
     host = dbinfo['host']
     dbname = dbinfo['dbname']

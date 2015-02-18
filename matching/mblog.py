@@ -54,7 +54,7 @@ def logrun(run_time, edited_pages, wrote_db, logged_errors, filepath):
 
 # TODO: add some sort of automatic error notification, possibly
 # a post on a wikipage
-def logerror(message, exc_info=False):
+def logerror(message, filepath, exc_info=False):
     """Log information when an error occurs to an external log file.
     """
 
@@ -89,8 +89,8 @@ def logmatch(match_info, db_info):
         postid      :   int. If a Flow board, the post-revision-id after
                         posting the new topic for the match.
     """
-#    conn_str = sqlutils.makeconnstr(db_info)
-    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
+    conn_str = sqlutils.makeconnstr(db_info)
+#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()
     matches = sqa.Table('matches', metadata, autoload=True,

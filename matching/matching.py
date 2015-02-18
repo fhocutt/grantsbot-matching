@@ -61,7 +61,13 @@ def get_profiles(prev_run_timestamp, categories, site):
     Returns a dict of profiles.
     """
     opted_out_profiles = mbapi.get_all_category_members(categories['people']['optout'], site)
-    new_profiles = mbapi.get_new_members(categories['people']['all'], site, prev_run_timestamp)
+    print opted_out_profiles
+    all_categories = categories['people']['skills'] + categories['people']['topics']
+    print all_categories
+    new_profiles = []
+    for category in all_categories:
+        new_profiles = new_profiles + mbapi.get_new_members(category, site, prev_run_timestamp)
+    print new_profiles
     return (new_profiles, opted_out_profiles)
 
 
@@ -119,11 +125,11 @@ def get_profile_talk_page(profile, talk_id, prefixes, site):
     return talkpage
 
 
-def get_active_ideas(run_time):
+def get_active_ideas(run_time, config):
     """ Checks the idea database for active ideas. Also does some string
     formatting to get them in the same form as the API returns them.
     """
-    return [u'Grants:{}'.format(x[0].replace('_', ' ')) for x in sqlutils.get_filtered_ideas()]
+    return [u'Grants:{}'.format(x[0].replace('_', ' ')) for x in sqlutils.get_filtered_ideas(config['dbinfo'])]
 
 
 def get_ideas_by_category(ideas, interest, skill, site, categories):
@@ -245,7 +251,7 @@ def main(filepath):
     {profiletitle: {'username': , 'userid': , 'skill': , 'interest': , 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
     """
 
-    active_ideas = get_active_ideas(run_time)
+    active_ideas = get_active_ideas(run_time, config)
     ideas = {}
 
     """ ideas = {topic1: [{profile: x, profile_id: y}, ...],
@@ -311,7 +317,7 @@ def main(filepath):
     try:
         mblog.logrun(run_time, edited_pages=False, wrote_db=False, logged_errors=False, filepath=filepath)
     except Exception as e:
-        mblog.logerror(u'Could not log run at {}'.format(run_time),
+        mblog.logerror(u'Could not log run at {}'.format(run_time), filepath,
             exc_info=True)
 
 

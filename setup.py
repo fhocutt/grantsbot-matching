@@ -8,10 +8,10 @@ config = {
     'author': 'Frances Hocutt',
     'url': 'https://github.com/fhocutt/grantsbot-matching',
     'download_url': '',
-    'author_email': 'frances.hocutt+matchbot@gmail.com',
+    'author_email': 'fhocutt+matchbot@wikimedia.org',
     'version': '0.1',
     'install_requires': ['nose'],
-    'packages': ['matchbot'],
+    'packages': ['matching'],
     'scripts': [],
     'name': 'GrantsBot/matching'
 }
