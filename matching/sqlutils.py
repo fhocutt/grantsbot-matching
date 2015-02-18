@@ -13,8 +13,8 @@ import sqlalchemy as sqa
 from sqlalchemy.sql import select, and_
 
 def get_filtered_ideas(db_info):
-    conn_str = makeconnstr(db_info)
-#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
+#    conn_str = makeconnstr(db_info)
+    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
     engine = sqa.create_engine(conn_str, echo=False)
     metadata = sqa.MetaData()
     ideas = sqa.Table('idealab_ideas', metadata, autoload=True,
@@ -30,8 +30,8 @@ def get_filtered_ideas(db_info):
 
 
 def logmatch(match_info, db_info):
-    conn_str = makeconnstr(db_info)
-#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
+#    conn_str = makeconnstr(db_info)
+    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()
     matches = sqa.Table('matches', metadata, autoload=True,
