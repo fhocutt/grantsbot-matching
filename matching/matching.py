@@ -126,7 +126,8 @@ def get_ideas_by_category(ideas, interests, skills, site, categories):
 
     idea_interests = [interest_dict.get(interest) for interest in interests]
     idea_skills = [skill_dict.get(skill) for skill in skills]
-
+    print idea_interests
+    print idea_skills
     # Lazy loading of ideas by skill and interest
     for interest in idea_interests:
         if interest not in ideas:
@@ -140,7 +141,7 @@ def get_ideas_by_category(ideas, interests, skills, site, categories):
         else:
             pass
 
-    if idea_interests is [] and idea_skills is [] and 'all' not in ideas:
+    if not interests and not skills and 'all' not in ideas:
         ideas['all'] = mbapi.get_all_category_members(categories['ideas']['all ideas'], site)
     else:
         pass
@@ -248,11 +249,32 @@ def main(filepath):
 
         idea_list = get_ideas_by_category(ideas, interests, skills, site, config['categories'])
         active_idea_list = filter_ideas(idea_list, active_ideas)
-        final_ideas = choose_ideas(active_idea_list, 3)
+        final_ideas = choose_ideas(active_idea_list, 5)
 
-        if len(final_ideas) < 3:
+        if len(final_ideas) < 5:
+            # keep this ideas list
+            # select more ideas from idea[interest], idea[skill]
+            skill_idea_list = get_ideas_by_category(ideas, [], skills, site, config['categories'])
+            interest_idea_list = get_ideas_by_category(ideas, interests, [], site, config['categories'])
+
+            active_extra_ideas = filter_ideas(skill_idea_list+interest_idea_list, active_ideas)
+            unique_active_extra_ideas = [x for x in active_extra_ideas if x not in final_ideas]
+            ideas_to_add = choose_ideas(unique_active_extra_ideas, 5-len(final_ideas))
+            final_ideas = final_ideas + ideas_to_add
+
+        if len(final_ideas) < 5:
+            print ideas
+            all_idea_list = get_ideas_by_category(ideas, [], [], site, config['categories'])
+            active_all_ideas = filter_ideas(all_idea_list, active_ideas)
+            unique_all_ideas = [x for x in active_all_ideas if x not in final_ideas]
+            ideas_to_add = choose_ideas(unique_all_ideas, 5-len(final_ideas))
+            final_ideas = final_ideas + ideas_to_add
+            # get a random sample of those
+            # add it to the end of the final_ideas list
+            # are there enough ideas yet?
+            # add some more from all_ideas
+
             get_more_ideas()
-        # TODO: what if there aren't enough ideas? NOTE will probably have to rework this also for multiple interests/skills
 
         greeting = utils.buildgreeting(config['greetings']['greeting'], new_profiles[profile]['username'], final_ideas)
 
