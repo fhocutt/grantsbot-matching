@@ -62,7 +62,7 @@ def filter_profiles(new_profiles, opted_out_profiles, prefix):
 
 def get_profile_info(profiles, categories, prefixes, site):
     """ Profile structure:
-    {profiletitle: {'username': , 'userid': , 'skill': , 'interest': , 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
+    {profiletitle: {'username': , 'userid': , 'skills': [], 'interests': [], 'profiletitle': , 'profileid': , 'profiletalktitle': }, ... }
     """
     for profile in profiles:
         personcats = (categories['people']['skills']
@@ -78,18 +78,18 @@ def get_profile_info(profiles, categories, prefixes, site):
         profile_dict['talk_id'] = talk_id
         profile_dict['talk_title'] = get_profile_talk_page(profile, talk_id,
                                                            prefixes, site)
-        profile_dict['skill'], profile_dict['interest'] = None, None
+        profile_dict['skills'], profile_dict['interests'] = [], []
 
         # we've only retrieved skills and interests, now we see which
         # is which and save it
         for category in page_categories:
             if category['title'] in categories['people']['skills']:
-                profile_dict['skill'] = category['title']
+                profile_dict['skills'].append(category['title'])
             else:
                 pass
 
             if category['title'] in categories['people']['topics']:
-                profile_dict['interest'] = category['title']
+                profile_dict['interests'].append(category['title'])
             else:
                 pass
     # TODO: handle errors here per matchbot.getlearnerinfo()
@@ -114,7 +114,7 @@ def get_active_ideas(run_time, config):
     return [u'Grants:{}'.format(x[0].replace('_', ' ')) for x in sqlutils.get_filtered_ideas(config['dbinfo'])]
 
 
-def get_ideas_by_category(ideas, interest, skill, site, categories):
+def get_ideas_by_category(ideas, interests, skills, site, categories):
     """ ideas = {topic1: [{profile: x, profile_id: y}, ...],
                  skill1: [...],
                  skill2: [...],
@@ -124,34 +124,48 @@ def get_ideas_by_category(ideas, interest, skill, site, categories):
     interest_dict = {k: v for k, v in zip(categories['people']['topics'], categories['ideas']['topics'])}
     skill_dict = {k: v for k, v in zip(categories['people']['skills'], categories['ideas']['skills'])}
 
-    idea_interest = interest_dict.get(interest)
-    idea_skill = skill_dict.get(skill)
+    idea_interests = [interest_dict.get(interest) for interest in interests]
+    idea_skills = [skill_dict.get(skill) for skill in skills]
 
     # Lazy loading of ideas by skill and interest
-    if idea_interest not in ideas and idea_interest is not None:
-        ideas[idea_interest] = mbapi.get_all_category_members(idea_interest, site)
-    else:
-        pass
+    for interest in idea_interests:
+        if interest not in ideas:
+            ideas[interest] = mbapi.get_all_category_members(interest, site)
+        else:
+            pass
 
-    if idea_skill not in ideas and idea_skill is not None:
-        ideas[idea_skill] = mbapi.get_all_category_members(idea_skill, site)
-    else:
-        pass
+    for skill in idea_skills:
+        if skill not in ideas:
+            ideas[skill] = mbapi.get_all_category_members(skill, site)
+        else:
+            pass
 
-    if idea_interest is None and idea_skill is None and 'all' not in ideas:
+    if idea_interests is [] and idea_skills is [] and 'all' not in ideas:
         ideas['all'] = mbapi.get_all_category_members(categories['ideas']['all ideas'], site)
     else:
         pass
 
+###### put in hideously complicated combinatoric stuff ^_^
     # What to return
-    if interest and skill:
-        return [x for x in ideas[idea_skill] if x in ideas[idea_interest]]
-    elif interest:
-        return ideas[idea_interest]
-    elif skill:
-        return ideas[idea_skill]
+    ideas_list = []
+    if interests and skills:
+        for idea_interest in idea_interests:
+            for idea_skill in idea_skills:
+                filtered_ideas = [x for x in ideas[idea_skill] if x in ideas[idea_interest] and x not in ideas_list]
+                print('{}/{}: {}'.format(idea_skill, idea_interest, filtered_ideas))
+                ideas_list.extend(filtered_ideas)
+    elif interests:
+        for idea_interest in idea_interests:
+            filtered_ideas = [x for x in ideas[idea_interest] if x not in ideas_list]
+            ideas_list.extend(filtered_ideas)
+    elif skills:
+        for idea_skill in idea_skills:
+            filtered_ideas = [x for x in ideas[idea_skill] if x not in ideas_list]
+            ideas_list.extend(filtered_ideas)
     else:
-        return ideas['all']
+        ideas_list = ideas['all']
+    print ideas_list
+    return ideas_list
 
 
 def filter_ideas(ideas, active_ideas):
@@ -194,8 +208,8 @@ def collect_match_info(response, profile_dict, matched_ideas, run_time):
         match_info.append({
             'participant_userid': profile_dict['userid'],
             'p_profile_pageid': profile_dict['profile_id'],
-            'p_interest': profile_dict['interest'],
-            'p_skill': profile_dict['skill'],
+            'p_interest': None,
+            'p_skill': None,
             'request_time': utils.parse_timestamp(profile_dict['cat_time']),
             'match_time': utils.parse_timestamp(response['newtimestamp']),
             'match_revid': response['newrevid'],
@@ -229,16 +243,16 @@ def main(filepath):
     ideas = {}
 
     for profile in new_profiles:
-        skill = new_profiles[profile]['skill']
-        interest = new_profiles[profile]['interest']
+        skills = new_profiles[profile]['skills']
+        interests = new_profiles[profile]['interests']
 
-        idea_list = get_ideas_by_category(ideas, interest, skill, site, config['categories'])
+        idea_list = get_ideas_by_category(ideas, interests, skills, site, config['categories'])
         active_idea_list = filter_ideas(idea_list, active_ideas)
         final_ideas = choose_ideas(active_idea_list, 3)
 
         if len(final_ideas) < 3:
             get_more_ideas()
-        # TODO: what if there aren't enough ideas?
+        # TODO: what if there aren't enough ideas? NOTE will probably have to rework this also for multiple interests/skills
 
         greeting = utils.buildgreeting(config['greetings']['greeting'], new_profiles[profile]['username'], final_ideas)
 
