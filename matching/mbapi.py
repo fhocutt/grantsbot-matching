@@ -3,10 +3,10 @@
 
 """
 mbapi
-~~~~~
+=====
 
 This module contains customized API calls and associated helper methods
-for MatchBot.
+for matching.py.
 """
 
 import json
@@ -16,15 +16,17 @@ import utils
 
 
 def get_page_title(pageid, site):
-    """ Get page title from page id. """
+    """Get page title, given page id and a mwclient Site."""
     response = site.api(action='query',
                         prop='info',
                         pageids=pageid)
     title = parse_page_title_response(response)
+    print(response)
     return title
 
 
 def parse_page_title_response(response):
+    """Parse the response from mbapi.get_page_title."""
     pagedict = response['query']['pages']
     for page in pagedict:
         title = pagedict[page]['title']
@@ -32,18 +34,29 @@ def parse_page_title_response(response):
 
 
 def get_page_info(title, categories, site):
-    """ OUTDATED
-     Retrieve user information for the user who made the first edit
-    to a page.
+    """
+    Retrieve information on a page, including user information for the
+    user who made the first edit, the talk page id, and relevant
+    categories the page is in.
+
     Parameters:
-        title   :   a string containing the page title
-        site    :   a mwclient Site object associated with the page
+        title       :   a string containing the page title
+        categories  :   a list of relevant categories that may be on
+                        the page (skills and interests)
+        site        :   a mwclient Site object associated with the page
 
     Returns:
-        user    :   a string containing the page creator's user name
-        userid  :   a string containing the page creator's userid
-
-        categories = list of dicts of the form {"ns": 14, "title": "Category:Blah"}
+        page_info, a tuple containing the following:
+            user            : a string containing the page creator's
+                                user name
+            userid          : a string containing the page creator's
+                                userid
+            talkid          : the pageid of the corresponding talk page,
+                                if it exists
+            page_categories : list of dicts of the form
+                                {"ns": 14, "title": "Category:XYZ"} for
+                                each category on the page that in the
+                                provided list of categories.
     """
     category_string = utils.make_category_string(categories)
     response = site.api(action='query',
@@ -94,7 +107,7 @@ def get_new_members(categoryname, site, timelastchecked):
                     'cmdir': 'older',
                     'cmend': timelastchecked}
     result = site.api(**recentkwargs)
-    newcatmembers = add_members_to_list(result, categoryname)
+    newcatmembers = add_new_members_to_list(result, categoryname)
 
     while True:
         if 'continue' in result:
@@ -102,20 +115,23 @@ def get_new_members(categoryname, site, timelastchecked):
             for arg in result['continue']:
                 newkwargs[arg] = result['continue'][arg]
             result = site.api(**newkwargs)
-            newcatmembers = add_members_to_list(result, categoryname,
-                                            newcatmembers)
+            newcatmembers = add_new_members_to_list(result, categoryname,
+                                                    newcatmembers)
         else:
             break
+    print(result)
     return newcatmembers
 
 
-def add_members_to_list(result, categoryname, catusers=None):
+def add_new_members_to_list(result, categoryname, cat_members=None):
     """Create a list of dicts containing information on each user from
-    the getnewmembers API result.
+    the mbapi.get_new_members API result.
 
     Parameters:
         result      :   a dict containing the results of the
                         getnewmembers API query
+        categoryname:   a string containing the name of the category
+                        that was searched
         catusers    :   a list of dicts with information on category
                         members from earlier queries. Optional,
                         defaults to None.
@@ -124,8 +140,8 @@ def add_members_to_list(result, categoryname, catusers=None):
         a list of dicts containing information on the category members
         in the provided query.
     """
-    if catusers is None:
-        catusers = []
+    if cat_members is None:
+        cat_members = []
     else:
         pass
 
@@ -134,8 +150,9 @@ def add_members_to_list(result, categoryname, catusers=None):
                     'profile_title': page['title'],
                     'cat_time': page['timestamp'],
                     'category': categoryname}
-        catusers.append(userdict)
-    return catusers
+        cat_members.append(userdict)
+
+    return cat_members
 
 
 def get_all_category_members(category, site):
@@ -144,8 +161,7 @@ def get_all_category_members(category, site):
     Parameters:
         category:   a string containing the category name, including
                     the 'Category:' prefix
-        site    :   mwclient Site object corresponding to the desired
-                    category
+        site    :   mwclient Site object
 
     Returns:
         a list of dicts containing information on the category members.
@@ -158,39 +174,41 @@ def get_all_category_members(category, site):
               'cmprop': 'ids|title',
               'cmlimit': 'max'}
     result = site.api(**kwargs)
-    catmembers = addmentorinfo(result)
+    cat_members = add_member_info(result)
     while True:
         if 'continue' in result:
             newkwargs = kwargs.copy()
             for arg in result['continue']:
                 newkwargs[arg] = result['continue'][arg]
             result = site.api(**newkwargs)
-            newcatmembers = addmentorinfo(result, catmembers)
+            cat_members = add_member_info(result, cat_members)
         else:
             break
-    return catmembers
+    print(result)
+    return cat_members
 
 
-def addmentorinfo(result, catmembers=None):
+def add_member_info(result, cat_members=None):
     """Create a list of dicts containing information on each user from
-    the getallcatmembers API result.
+    the get_all_category_members API result.
 
     Parameters:
         result      :   a dict containing the results of the
                         getallmembers API query
-        catusers    :   a list of dicts with information on category
+        cat_members :   a list of dicts with information on category
                         members from earlier queries. Optional,
-                        defaults to [].
+                        defaults to None.
     Returns:
         a list of dicts containing information on the category members
         in the provided query.
     """
-    if catmembers is None:
-        catmembers = []
+    # getting around Python's function/list initialization behavior
+    if cat_members is None:
+        cat_members = []
     else:
         pass
 
     for page in result['query']['categorymembers']:
         userdict = {'profileid': page['pageid'], 'profile_title': page['title']}
-        catmembers.append(userdict)
-    return catmembers
+        cat_members.append(userdict)
+    return cat_members

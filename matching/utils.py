@@ -2,14 +2,19 @@
 # -*- coding: utf-8 -*-
 
 """
+utils
+=====
+
 Utility functions for matching.py.
 """
+
 
 import datetime
 import json
 import os
 
 
+#testme
 def parse_timestamp(t):
     """Parse MediaWiki-style timestamps and return a datetime."""
     if t == '0000-00-00T00:00:00Z':
@@ -19,13 +24,16 @@ def parse_timestamp(t):
 
 
 def load_config(filepath):
+    """Given the path to the config file, opens and returns the dict."""
     configfile = os.path.join(filepath, 'config.json')
     with open(configfile, 'rb') as configf:
         config = json.loads(configf.read())
     return config
 
 
+#testme
 def make_category_string(categories):
+    """Given a list of categories, return the |-separated string."""
     return '|'.join(categories)
 
 
@@ -49,22 +57,16 @@ def timelog(run_time, filepath):
     return prevruntimestamp
 
 
+#testme
 def buildgreeting(greeting, username, ideas):
     """Create a customized greeting string to be posted to a talk page
-    to introduce a potential mentor to a learner.
+    to present the IdeaLab member with a list of interesting ideas.
 
-    Return the greeting.
-    """
-    """
-        except Exception as e:
-            mblog.logerror(u'Could not create a greeting for {}'.format(
-                learner['learner']), exc_info=True)
-            logged_errors = True
-            continue
+    Return the wikitext-formatted greeting string.
     """
     idea_string = ''
     for idea in ideas:
         title = idea['profile_title']
-        idea_string = '{}* [[{}]]\n'.format(idea_string, title)
+        idea_string = u'{}* [[{}]]\n'.format(idea_string, title)
     full_greeting = greeting.format(username, idea_string)
     return full_greeting
