@@ -37,8 +37,8 @@ def get_filtered_ideas(db_info):
     Returns:
         data    :   a list of active and non-flagged idea page titles
     """
-#    conn_str = make_conn_string(db_info)
-    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
+    conn_str = make_conn_string(db_info)
+#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/ideas.db'
     engine = sqa.create_engine(conn_str, echo=False)
     metadata = sqa.MetaData()
     ideas = sqa.Table('idealab_ideas', metadata, autoload=True,
@@ -84,8 +84,8 @@ def logmatch(match_info, db_info):
 
     Returns: None
     """
-#    conn_str = make_conn_string(db_info)
-    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
+    conn_str = make_conn_string(db_info)
+#    conn_str = 'sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db'
     engine = sqa.create_engine(conn_str, echo=True)
     metadata = sqa.MetaData()
     matches = sqa.Table('matches', metadata, autoload=True,
