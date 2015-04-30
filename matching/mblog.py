@@ -5,9 +5,8 @@
 mblog
 ~~~~
 
-This module contains logging functions for MatchBot. These can log
-errors and run history to text files and matches to a relational
-database.
+This module contains logging functions for GrantsBot/matching. These can log
+errors and run history to text files.
 """
 
 import logging
@@ -39,7 +38,7 @@ def logrun(filepath, run_time, edited_pages=False, wrote_db=False, logged_errors
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(levelname)s\t%(message)s')
     handler = logging.handlers.TimedRotatingFileHandler(
-        os.path.join(logpath, 'matchbot.log'), when='D', interval=30,
+        os.path.join(logpath, 'matching.log'), when='D', interval=30,
         backupCount=2, utc=True)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -57,7 +56,7 @@ def logerror(message, filepath, exc_info=False):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler = logging.FileHandler(os.path.join(logpath, 'matchbot_errors.log'))
+    handler = logging.FileHandler(os.path.join(logpath, 'matching_errors.log'))
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.error(message, exc_info=exc_info)

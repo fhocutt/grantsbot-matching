@@ -69,10 +69,12 @@ def get_page_info(title, categories, site):
                         titles=title,
                         rvlimit=1)
     page_info = parse_page_info_response(response)
+    print(response)
     return page_info
 
 
 def parse_page_info_response(response):
+    """Parse the API response for mbapi.get_page_info."""
     pagedict = response['query']['pages']
     for page in pagedict:
         user = pagedict[page]['revisions'][0]['user']

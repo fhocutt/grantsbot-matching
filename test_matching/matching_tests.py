@@ -70,7 +70,7 @@ def test_get_profile_talk_page_no_talkpage():
     prefixes = {'main': 'User:Jmorgan (WMF)/', 'talk': 'User talk:Jmorgan (WMF)/'}
     assert get_profile_talk_page(profile, None, prefixes, None) == profile_talk
 
-def test_get_profile_talk_page_no_talkpage_nonlatin():
+def test_get_profile_talk_page_no_talkpage_nonascii():
     profile = u'User:Jmorgan (WMF)/ĞğÜüÖöçÇ'
     profile_talk = u'User talk:Jmorgan (WMF)/ĞğÜüÖöçÇ'
     prefixes = {'main': 'User:Jmorgan (WMF)/', 'talk': 'User talk:Jmorgan (WMF)/'}
@@ -78,10 +78,7 @@ def test_get_profile_talk_page_no_talkpage_nonlatin():
     assert get_profile_talk_page(profile, None, prefixes, None) == profile_talk
 
 
-
-# empty list(s), missing profile title = keyerror,
 # test cases for filter_ideas
-# get profile structure 
 def test_filter_no_ideas():
     ideas = []
     result = filter_ideas(ideas, ['Ideas for the manticore gap'])
@@ -94,7 +91,6 @@ def test_filter_no_ideas_no_filter():
 def test_filter_ideas_ideas_list_of_strings():
     ideas = ['ideas', 'more ideas']
     filter_ideas(ideas, [])
-
 
 def test_filter_ideas_no_filter():
     ideas = [{'profileid': 5590171, 'profile_title': u'Grants:IdeaLab/Annual training for Administrators, ArbCom, Wikimedia, and Chapter leaders'}, {'profileid': 6487284, 'profile_title': u'Grants:IdeaLab/Code of conduct synchronization'}, {'profileid': 5939165, 'profile_title': u'Grants:IdeaLab/Gender Gap Allies training'}, {'profileid': 5589969, 'profile_title': u'Grants:IdeaLab/Gender gap on the mainpage'}, {'profileid': 5793487, 'profile_title': u'Grants:IdeaLab/Gender-gap admin training'}, {'profileid': 5322427, 'profile_title': u'Grants:IdeaLab/Inspire Grants \u2013 Gender gap campaign'}, {'profileid': 6888558, 'profile_title': u'Grants:IdeaLab/Wikipedia Gender Concerns Reporting Tools'}, {'profileid': 6594508, 'profile_title': u'Grants:IdeaLab/WikiProject Men'}, {'profileid': 6686665, 'profile_title': u'Grants:IdeaLab/WIGI: Wikipedia Gender Index Tools'}]
@@ -117,7 +113,7 @@ def test_filter_ideas_filter_not_applicable():
     filtered_ideas = filter_ideas(ideas, ['Ideas for the manticore gap'])
     assert filtered_ideas == []
 
-# DONE
+
 # test cases for choose_ideas
 def test_choose_ideas_no_ideas():
     assert choose_ideas([], 3) == []
@@ -141,8 +137,9 @@ def test_choose_ideas_more_ideas_than_number():
 def test_choose_zero_ideas():
     assert choose_ideas(['a'], 0) == []
 
-# various keyerrors, no profile_dict, empty matched ideas, valid run_time, good/empty response
-# needs: form of profile_dict, matched_ideas, response, timestamp for run_time
+
+# tests for collect_match_info
+# Possible additional tests: various keyerrors, no profile_dict, empty matched ideas, valid run_time, good/empty response
 def test_collect_match_info():
     response = {u'pageid': 6895625, u'title': u'User talk:Jmorgan (WMF)/1', u'newtimestamp': u'2015-02-28T02:26:44Z', u'contentmodel': u'wikitext', u'result': u'Success', u'oldrevid': 11408050, u'newrevid': 11410968}
     matched_ideas = [{'profileid': 6487284, 'profile_title': u'Grants:IdeaLab/Code of conduct synchronization'}, {'profileid': 6431317, 'profile_title': u'Grants:IdeaLab/Translation platform: Minority Translate'}, {'profileid': 6571034, 'profile_title': u'Grants:IdeaLab/Add Indian Classical Music to Wikipedia'}, {'profileid': 6543312, 'profile_title': u'Grants:IdeaLab/Investigation about wikimedia projects in Tunisia'}, {'profileid': 6569632, 'profile_title': u'Grants:IdeaLab/WikiProject Women'}]

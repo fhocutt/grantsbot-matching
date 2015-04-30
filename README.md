@@ -1,49 +1,47 @@
-matchbot
-========
+grantsbot-matching
+==================
 
-MatchBot is a MediaWiki bot that runs in the
-[Wikipedia Co-op](https://en.wikipedia.org/Wikipedia:Co-op), a space that fosters
-mentorship and the sharing of skills needed to edit
-[English Wikipedia](https://en.wikipedia.org). Co-op members and mentors are
-identified by the presence of category tags on a profile page. MatchBot
-inspects these categories to match mentors and learners, who are then free to
-follow up with each other and start asking and answering questions.
+GrantsBot/matching is a MediaWiki bot that runs in the
+[IdeaLab](https://meta.wikimedia.org/wiki/Grants:IdeaLab), a collaborative
+space that supports prospective grant applicants.
 
-[More technical information on the bot's role on English Wikipedia.](https://en.wikipedia.org/wiki/User:HostBot/Co-op)
+Ideas are tagged with categories denoting skills needed and topic; profiles are
+tagged with skill and interest categories. GrantsBot/matching aids
+discoverability by using these categories to select a relevant set of ideas for
+each participant with a profile and posting them on the profile talk page, tagging
+the participant so that they get an Echo notification.
+
 
 ## Getting started
 
 To download with git:
 ```bash
-$ git clone https://github.com/fhocutt/matchbot.git
+$ git clone https://github.com/fhocutt/grantsbot-matching.git
 ```
 
 Update `config.json` with your bot's login information and database
 credentials, and make any other necessary changes (see
-[Configuring MatchBot](#Configuring MatchBot) for more information).
+[Configuring GrantsBot/matching](#Configuring GrantsBot/matching)
+for more information).
 
 To create a database with the expected schema:
 ```bash
-$ python path/to/matchbot/misc/sqlcreateinsert.py
+$ python path/to/grantsbot-matching/bin/createtable.py
 ```
 
 To run the script manually:
 ```bash
-$ python matchbot.py <path-to-config>
+$ python path/to/grantsbot-matching/matching/matching.py <path-to-config>
 ```
+`<path-to-config>` defaults to `./matching/` if omitted.
 
-If you have installed this with `git clone` as above and are in the
-`path/to/matchbot/` directory,
-```bash
-$ python matchbot.py .
-```
-will run the script.
-
-MatchBot will not run if the directory specified in `<path-to-config>` does not
-contain `config.json`, `time.log`, and a `logs/` folder.
+GrantsBot/matching will not run if the directory specified in
+`<path-to-config>` does not contain `config.json` and a `log/` folder.
 
 ### Running on Tool Labs
-MatchBot is designed to be run on [Tool Labs](https://wikitech.wikimedia.org/wiki/Help:Tool_Labs) with an associated MySQL database.
+GrantsBot/matching is designed to be run on
+[Tool Labs](https://wikitech.wikimedia.org/wiki/Help:Tool_Labs) with two
+associated MySQL databases, one to log matches and one that lists the number of recent contributors to ideas in the IdeaLab.
 
 Steps to get started:
 * Make an account for your bot on the wiki you're running it on.
@@ -61,11 +59,13 @@ $ pip install mysql-python
 $ pip install sqlalchemy
 $ pip install git+git://github.com/mwclient/mwclient.git
 ```
+* Set up your database tables to log information on matches and track active ideas (see [Databases](#Databases) for details)
 * If you want to set the bot up to run every five minutes, add the following line to your crontab in your Labs project account:
 ```
-*/5 * * * * jsub /path/to/virtualenv/bin/python /path/to/matchbot/matchbot.py /path/to/matchbot/
+*/5 * * * * jsub /path/to/virtualenv/bin/python /path/to/grantsbot-matching/matching/matching.py /path/to/grantsbot-matching/matching/
 ```
 This will use the `jsub` job scheduler on Tool Labs to run the bot using the virtualenv that you have set up previously.
+
 
 ## Dependencies
 See `requirements.txt` for dependencies.
@@ -77,52 +77,46 @@ Notes:
 ```bash
 $ pip install git+git://github.com/mwclient/mwclient.git
 ```
-  The 0.7.1 version of mwclient should work as well but has not been tested yet.
 * SQLAlchemy depends on MySQLdb. On Tool Labs, if you are having a problem
   involving MySQLdb, try running `pip install mysql-python` from inside your
   virtualenv.
 
 
 ## How matches are made
-MatchBot's category-based matching algorithm is as follows:
+GrantsBot/matching's category-based matching algorithm is as follows:
 
-* If possible, a Co-op member is matched with an available random mentor in the
-  same category as the request (writing, best practices, etc.).
-* If there is no available mentor with the skill, the member is matched with an
-  available random mentor who has signed up to mentor in the "general skills"
-  category.
-* If there are no mentors available in either the relevant category or as
-  general mentors, the Co-op maintainer is notified so that the maintainer can
-  find a match manually and notify both people.
+* Create a list of ideas which have been created recently and which are currently active
+* List new and newly updated profiles, noting the skill and interest categories
+* For each new (or newly updated) profile:
+    * Find 5 active ideas which are categorized as looking for contributors with both an interest and a skill listed on the profile
+    * If there are more than 5 such ideas, choose a random selection to post
+    * If there are fewer than 5 such ideas, repeats the search with the match
+      requirement loosened (topic *or* skill, not topic *and* skill)
+    * If there are still fewer than 5 ideas in the list, add a random selection
+      from the list of all ideas to make a list of 5 ideas (checking for duplicates in all cases)
 
-MatchBot assumes that:
+GrantsBot/matching assumes that:
 
-* Every Co-op member/mentor will create their own profile page.
-* Only sub-pages of [Wikipedia:Co-op](https://en.wikipedia.org/Wikipedia:Co-op)
-  and [Wikipedia talk:Co-op](https://en.wikipedia.org/Wikipedia_talk:Co-op) are
-  relevant to MatchBot's activity (queries or edits).
-* Users will correctly tag their profiles with the correct categories, whether
+* Every IdeaLab participant will create their own profile page.
+* Only sub-pages of the [IdeaLab](https://meta.wikimedia.org/wiki/Grants:IdeaLab)
+  and its associated [talk pages](https://meta.wikimedia.org/Grants_talk:IdeaLab) are
+  relevant to GrantsBot/matching's activity (queries or edits).
+* Participants will correctly tag their profiles with the correct categories, whether
   via manual edits or through the profile page creation gadget.
-* Mentors who are not accepting new learners will manually add the opt-out
-  category to their profile pages.
-* That there will be a certain amount of oversight and manual intervention
-  in correcting errors, handling missing matches, etc. from the Co-op
-  maintainer.
-* If a Co-op member's profile talk page does not exist when MatchBot tries to
-  post a greeting, it will be created as a Flow board. Existing talk pages
-  will be edited as usual.
+* IdeaLab participants who do not want to receive automatic matches will manually
+  add the opt-out category to their profile pages.
 
 
-## Configuring MatchBot
+## Configuring GrantsBot/matching
 
-MatchBot keeps user-configurable information (login and database information,
-text of the greetings to post, the default mentor to contact when a match is not
-found, relevant category titles, and namespace/subpage information) in a configuration file.
+GrantsBot/matching keeps user-configurable information (login and database
+information, text of the greeting to post, relevant category titles, and
+namespace/subpage information) in a configuration file.
 
 To change these settings, use a text editor to edit `config.json`. You should
 add `config.json` to your `.gitignore` file to avoid accidentally uploading
 your bot's credentials to your code repository. A sample configuration file is
-provided.
+provided (`config.json.sample`).
 
 JSON quirks:
 * JSON expects no comma after the last item in a list. If you are getting
@@ -131,69 +125,49 @@ JSON quirks:
 
 ### Configurable settings
 #### Categories (`categories`):
-As described in [How matches are made](#How matches are made), MatchBot uses
-the presence or absence of categories on Co-op pages to match mentors and
-learners. A mentor may opt out by adding the opt-out category to their profile
-page. Requests for a mentor are made by placing one of the request categories
-on a Co-op profile page. A mentor declares their mentorship interests by adding
-one or more of the mentor categories to their Co-op profile.
+As described in [How matches are made](#How matches are made), GrantsBot/matching
+uses the presence or absence of categories on IdeaLab profile pages to select
+the ideas most likely to be of interest. An IdeaLab participant may opt out of
+receiving matches by adding the opt-out category to their profile page. A
+participant declares their skills and interests by adding one or more of the
+associated categories to their IdeaLab profile.
 
 All categories should include the "Category:" prefix.
 
-* `general`: The category for mentors who are willing to mentor on any category.
-* `optout`: The category for mentors who do not with to receive new matches.
+Categories are divided between `ideas` and `people` and should be added to
+Idea pages and profile pages, respectively.
 
-The following three lists contain descriptions or categories corresponding to
-the mentorship skills that the Co-op focuses on:
+* `ideas`:
+    * all: category containing all IdeaLab ideas
+    * skills: list of skills that may be useful in carrying out an idea
+    * topics: list of high-level topics of interest
 
-* `skillslist`: Short text descriptions of the skills
-* `mentorcategories`: Category names used on mentor profile pages to offer
-  mentorship in a skill
-* `requestcategories`: Category names used on member profile pages to request
-  instruction in a skill
+* `people`:
+    * all: category containing all IdeaLab participants
+    * optout: category for participants who do not wish to receive match messages
+    * skills: list of skills participants have to offer
+    * topics: list of high-level topics of interest (e.g. for Inspire campaigns, the campaign topic)
 
-There may be any number of skills/categories in these lists, but 
-there *must* be the same number in each of them and each list *must* be in the
-same order.
+There may be any number of skills or topics in these lists, but
+there *must* be the same number in the respective `ideas` and `people` lists and each pair of lists
+*must* be in the same order.
 
 
 #### Database information (`dbinfo`):
+
 * `dbname`, `host`: Database name and host for the MySQL database you are using
-  to log matches (see [Logging](#Logging)).
+  to log matches and record idea activity (see [Logging](#Logging)).
 * `username`, `password`: Username and password for the MySQL database; distinct
   from the bot's wiki username and password.
 
-#### Default mentor (`defaultmentorprofile`):
-The title of the Co-op maintainer's profile page in the Co-op. This person will be notified if no match is possible.
-
 
 #### Messages (`greetings`):
-MatchBot edits Co-op profile talk pages to deliver matches. It has two types of
-messages: one that is posted when a match is successfully made to notify the
-Co-op member and their new mentor of the match, and one that is posted when no
-match can be made and which welcomes the person and notifies the Co-op
-maintainer.
+GrantsBot/matching edits IdeaLab profile talk pages to deliver a list of five ideas of possible interest, using the text provided in this section.
 
-Greetings may be posted on standard talk pages or as new topics on a Flow board.
-If a page has already been created as a standard talk page, the bot cannot
-turn the page into a Flow board.
-
-The bot will need to have the `flow-create-board` right in order to create Flow 
-boards on blank pages. This right can be granted by adding the bot to your
-wiki's [flowbot usergroup](https://en.wikipedia.org/wiki/Special:ListUsers?group=flow-bot). 
-If this right is not granted, the bot will post the invitation on a standard talk page.
-
-* `topic`: Topic of the new Flow post (for Flow boards) and section header for normal talk pages. Also used as the edit summary.
-* `greeting`: Text of the Flow post or the section contents. This will generate an Echo notification for the mentor.
-     * `{0}`: The user name of the mentor
-     * `{1}`: The skill requested ("communication", "general editing skills", etc.)
-* `nomatchgreeting`: Text of the Flow post or section contents if no mentor can be found.
-     * `{0}`: The user name of the Co-op maintainer
-* `noflowtemplate`: Template to add a new section and notify the learner when
-  posting on a standard talk page. Designed to be used with either the match and no-match greeting.
-     * `{0}`: Title for the new section
-     * `{1}`: Requester's name (so they get an Echo notification)
-     * `{2}`: Section text
+* `section`: Section header for normal talk pages. Also used as the edit summary.
+* `greeting`: Text of the section contents. This will generate an Echo notification for the participant.
+     * `{0}`: The user name of the participant
+     * `{1}`: The list of five ideas
 
 *NOTE:* All `{N}`-type text listed above *must* be included in your messages,
 no matter what other changes you make to the message text. For example, a
@@ -206,79 +180,111 @@ lead to errors that prevent the message from being posted.
 * `username`, `password`: Your bot's username and password on the wiki it runs on.
 * `protocol`: `http` or `https`. `https` is more secure and is recommended if
   the wiki supports it.
-* `site`: the URL of the wiki the bot runs on (for instance, `en.wikipedia.org`
-  for [English Wikipedia](https://en.wikipedia.org))
+* `site`: the URL of the wiki the bot runs on (for instance, `meta.wikimedia.org`
+  for [Meta-Wiki](https://meta.wikimedia.org))
 * `useragent`: Information about your bot. When running on WMF-run wikis, it
   must contain your bot's user name and a way to contact the person responsible
   for running it. For more information, see the [User-agent policies](http://meta.wikimedia.org/wiki/User-Agent_policy).
 
 
 #### Namespace/root page/prefixes (`pages`):
-MatchBot operates on sub-pages of the main Co-op page and of its associated talk
+GrantsBot/matching operates on sub-pages of the main IdeaLab page and of its associated talk
 page.
 
-* `main`: Title of the main page. All Co-op profile pages are sub-pages of this
+* `main`: Title of the main page. All IdeaLab profile pages are sub-pages of this
   page.
-* `talk`: Title of the main talk page. All Co-op profile talk pages are sub-
+* `talk`: Title of the main talk page. All IdeaLab profile talk pages are sub-
   pages of this page.
 
 
 ## Logging
-MatchBot logs information every time it is run. All log files are stored in
-`path/to/matchbot/logs/`; the database of matches is stored on Tool Labs.
+GrantsBot/matching logs information every time it is run. All log files are stored in
+`path/to/grantsbot-matching/matching/log/`; the database of matches and active ideas is stored
+on Tool Labs.
 
-### Runs
-
-Information about each time the bot runs is logged to the `matchbot.log` text
+### Run logs
+Information about each time the bot runs is logged to the `matching.log` text
 file: the date and time the script was run, whether the script successfully
 edited one or more pages, successfully logged information on one or more
 matches to the associated relational database, and whether any errors were
 handled while the script ran.
 
-Example line in `matchbot.log`:
+Example line in `matching.log`:
 ```
 INFO 2015-01-01 01:00:45.650401 Edited: False Wrote DB: False Errors: False
 ```
 To cap the size of these files, a new log file is started every 30 days. Two
 backup logs are kept, each for 60 days.
 
-### Matches
+### Databases
+GrantsBot/matching's record of recently created and active ideas and log of
+matches posted are both backed by a MySQL database on
+[Tool Labs](https://wikitech.wikimedia.org/wiki/Help:Tool_Labs).
 
-Information about matches is logged to a relational database with the following
+#### Active ideas (`idealab_ideas`)
+GrantsBot/matching identifies recently active ideas (recently created, and with
+a certain number of userids posting on the idea page and talk page) so that the
+bot does not recommend inactive ideas. It gets this information from the 
+`idealab_ideas` table in the project database. It has the following structure:
+
+```sql
+> SHOW COLUMNS FROM idealab_ideas;
++---------------------+------------------+------+-----+---------+----------------+
+| Field               | Type             | Null | Key | Default | Extra          |
++---------------------+------------------+------+-----+---------+----------------+
+| id                  | int(11) unsigned | NO   | PRI | NULL    | auto_increment |
+| idea_id             | int(11)          | YES  | UNI | NULL    |                |
+| idea_title          | varbinary(255)   | YES  |     | NULL    |                |
+| idea_talk_id        | int(11)          | YES  |     | NULL    |                |
+| idea_creator        | varbinary(255)   | YES  |     | NULL    |                |
+| idea_created        | datetime         | YES  |     | NULL    |                |
+| idea_endorsements   | int(11)          | YES  |     | NULL    |                |
+| idea_recent_editors | int(11)          | YES  |     | NULL    |                |
+| ignore              | tinyint(1)       | YES  |     | 0       |                |
++---------------------+------------------+------+-----+---------+----------------+
+```
+
+Running `$ python bin/ideaDBcreation.py` should create this table.
+
+This table can be regularly updated by running the following script:
+[Update idea table](https://github.com/jtmorgan/grantsbot/blob/master/idealab/update_idea_table.py)
+The `ignore` column defaults to `0` and is not automatically updated. Manually
+setting the `ignore` flag to 1 will prevent the bot from adding that idea to
+any lists to be posted.
+
+#### Matches (`matches`)
+Information about matches posted is logged to the `matches` table, which has the following
 structure:
 
 ```sql
 > SHOW COLUMNS FROM matches;
 
-+------------+-------------+------+-----+---------+----------------+
-| Field      | Type        | Null | Key | Default | Extra          |
-+------------+-------------+------+-----+---------+----------------+
-| id         | int(11)     | NO   | PRI | NULL    | auto_increment |
-| luid       | int(11)     | YES  |     | NULL    |                |
-| lprofileid | int(11)     | YES  |     | NULL    |                |
-| category   | varchar(75) | YES  |     | NULL    |                |
-| muid       | int(11)     | YES  |     | NULL    |                |
-| matchtime  | datetime    | YES  |     | NULL    |                |
-| cataddtime | datetime    | YES  |     | NULL    |                |
-| revid      | int(11)     | YES  |     | NULL    |                |
-| postid     | varchar(50) | YES  |     | NULL    |                |
-| matchmade  | tinyint(1)  | YES  |     | NULL    |                |
-| run_time   | datetime    | YES  |     | NULL    |                |
-+------------+-------------+------+-----+---------+----------------+
++--------------------+-------------+------+-----+---------+----------------+
+| Field              | Type        | Null | Key | Default | Extra          |
++--------------------+-------------+------+-----+---------+----------------+
+| id                 | int(11)     | NO   | PRI | NULL    | auto_increment |
+| participant_userid | int(11)     | YES  |     | NULL    |                |
+| p_profile_pageid   | int(11)     | YES  |     | NULL    |                |
+| p_interest         | varchar(75) | YES  |     | NULL    |                |
+| p_skill            | varchar(75) | YES  |     | NULL    |                |
+| request_time       | datetime    | YES  |     | NULL    |                |
+| match_time         | datetime    | YES  |     | NULL    |                |
+| match_revid        | int(11)     | YES  |     | NULL    |                |
+| idea_pageid        | int(11)     | YES  |     | NULL    |                |
+| run_time           | datetime    | YES  |     | NULL    |                |
++--------------------+-------------+------+-----+---------+----------------+
 ```
 
-MatchBot's match logging is backed by a MySQL database
-on [Tool Labs](https://wikitech.wikimedia.org/wiki/Help:Tool_Labs).
+Methods to create this table are in `bin/sqlcreateinsert.py`.
 
 Help on Tool Labs is available on the `#wikimedia-labs` IRC channel on
 Freenode.
 
 ### Errors
+When possible, GrantsBot/matching simply logs errors and allows the script to continue.
+Errors are logged to `matching_errors.log`. They include a stack trace for
+all exceptions raised, including ones that are logged and handled so
+GrantsBot/matching can finish running.
 
-When possible, MatchBot simply logs errors and allows the script to continue.
-Errors are logged to `matchbot_errors.log`. They include a stack trace for
-all exceptions raised, including ones that are logged and handled so MatchBot
-can finish running.
-
-The `matchbot_errors.log` file is not automatically rotated. If the file is
+The `matching_errors.log` file is not automatically rotated. If the file becomes
 inconveniently large, you can compress it or delete it.

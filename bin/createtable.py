@@ -7,9 +7,8 @@ import datetime
 
 def main(filepath):
     config = load_config(filepath)
-#    conn_str = makeconnstr(config)
-#    createtable(conn_str)
-    createtable('sqlite:////home/fhocutt/WMFContractWork/IdeaLab/grantsbot-matching/matches.db')
+    conn_str = makeconnstr(config)
+    createtable(conn_str)
 
 def load_config(filepath):
     configfile = os.path.join(filepath, 'config.json')
@@ -42,21 +41,6 @@ def createtable(conn_str):
                         sqa.Column('idea_pageid', sqa.Integer),
                         sqa.Column('run_time', sqa.DateTime))
     metadata.create_all(engine)
-
-
-def insertmatches(conn_str, luid, lprofileid, category, muid, matchtime,
-                  cataddtime, matchmade, run_time, revid=None, postid=None):
-    engine = sqa.create_engine(conn_str, echo=True)
-    metadata = sqa.MetaData()
-    matches = sqa.Table('matches', metadata, autoload=True,
-                        autoload_with=engine)
-    ins = matches.insert()
-    conn = engine.connect()
-    conn.execute(ins, {'luid': luid, 'lprofileid': lprofileid,
-                       'category': category, 'muid': muid,
-                       'matchtime':matchtime, 'cataddtime': cataddtime,
-                       'revid': revid, 'postid': postid, 'matchmade':
-                       matchmade, 'run_time': run_time})
 
 
 if __name__ == '__main__':

@@ -7,11 +7,6 @@ import datetime
 from matching.utils import parse_timestamp, make_category_string, buildgreeting
 
 def setup():
-    greeting = 'Welcome to the IdeaLab, [[User:{0}|{0}]]! ' \
-               'Here are some ideas that you may want to check out:\n{1}Take' \
-               ' a look and endorse them, help improve them, or spread the ' \
-               'word. --~~~~'
-
     print('Setup!')
 
 def teardown():

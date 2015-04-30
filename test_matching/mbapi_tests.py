@@ -26,14 +26,12 @@ def test_parse_page_title_response():
     assert (parse_page_title_response(response) ==
             u'User talk:Jmorgan (WMF)/test profile2')
 
-
 @raises(KeyError)
 def test_parse_bad_page_title_response():
     parse_page_title_response({})
 
 
 #tests for parse_page_info_response
-# test all the components including existing/nonexisting cats and talkid, and also a bad response
 def parse_good_page_info_response_setup():
     response = {u'query': {u'pages': {u'6895623':
                 {u'lastrevid': 11330642, u'pageid': 6895623,
@@ -92,11 +90,9 @@ def test_parse_page_info_response_no_username():
                 u'limits': {u'categories': 500}}
     parse_page_info_response(response)
 
-
 def test_parse_page_info_response_username():
     page_info = parse_good_page_info_response_setup()
     assert page_info['user'] == u'Jmorgan (WMF)'
-
 
 @raises(KeyError)
 def test_parse_page_info_response_no_userid():
@@ -123,7 +119,6 @@ def test_parse_page_info_response_no_userid():
                               u'continue': u'||info|categories|userinfo'},
                 u'limits': {u'categories': 500}}
     parse_page_info_response(response)
-
 
 def test_parse_page_info_response_userid():
     page_info = parse_good_page_info_response_setup()
@@ -188,6 +183,7 @@ def test_parse_page_info_response_categories():
         u'Category:IdeaLab members with research experience'}]
     assert page_info['page categories'] == page_categories
 
+
 #tests for add_new_members_to_list
 def test_add_new_members_setup():
     response = {u'batchcomplete': u'',
@@ -209,19 +205,16 @@ def test_add_new_members_setup():
                 u'limits': {u'categorymembers': 500}}
     return(response)
 
-
 def test_add_no_new_members_setup():
     response = {u'batchcomplete': u'', u'limits': {u'categorymembers': 500},
                 u'query': {u'categorymembers': [],
                 u'userinfo': {u'id': 7535326, u'name': u'MatchBot'}}}
     return(response)
 
-
 def test_add_new_members_to_nonexistent_list():
     response = test_add_new_members_setup()
     new_list = [{'cat_time': u'2015-02-25T20:53:10Z', 'category': 'Category:Chickens', 'profile_id': 6950116, 'profile_title': u'User:Jmorgan (WMF)/Jmorgan (WMF)'}, {'cat_time': u'2015-02-18T23:46:15Z', 'category': 'Category:Chickens', 'profile_id': 6888014, 'profile_title': u'User:Jmorgan (WMF)/test profile2'}, {'cat_time': u'2015-02-18T18:28:12Z', 'category': 'Category:Chickens', 'profile_id': 6893810, 'profile_title': u'User:Jmorgan (WMF)/Test'}, {'cat_time': u'2015-02-17T23:46:17Z', 'category': 'Category:Chickens', 'profile_id': 6888013, 'profile_title': u'User:Jmorgan (WMF)/test profile1'}]
     assert add_new_members_to_list(response, 'Category:Chickens') == new_list
-
 
 def test_add_new_members_to_existing_list():
     response = test_add_new_members_setup()
@@ -232,29 +225,24 @@ def test_add_new_members_to_existing_list():
     assert (add_new_members_to_list(response, 'Category:Not chickens',
                                     existing_list) == new_list)
 
-
 def test_add_no_members_to_existing_list():
     response = test_add_no_new_members_setup()
     existing_list = [{'cat_time': u'2015-02-25T20:53:10Z', 'category': 'Category:Chickens', 'profile_id': 6950116, 'profile_title': u'User:Jmorgan (WMF)/Jmorgan (WMF)'}, {'cat_time': u'2015-02-18T23:46:15Z', 'category': 'Category:Chickens', 'profile_id': 6888014, 'profile_title': u'User:Jmorgan (WMF)/test profile2'}, {'cat_time': u'2015-02-18T18:28:12Z', 'category': 'Category:Chickens', 'profile_id': 6893810, 'profile_title': u'User:Jmorgan (WMF)/Test'}, {'cat_time': u'2015-02-17T23:46:17Z', 'category': 'Category:Chickens', 'profile_id': 6888013, 'profile_title': u'User:Jmorgan (WMF)/test profile1'}]
     assert(add_new_members_to_list(response, 'Category:Chickens',
                                    existing_list) == existing_list)
 
-
 def test_add_no_members_to_nonexistent_list():
     response = test_add_no_new_members_setup()
     assert add_new_members_to_list(response, 'Category:Chickens') == []
-
 
 @raises(KeyError)
 def test_add_blank_result_to_list():
     add_new_members_to_list({}, 'Category:Chickens')
 
-
 #tests for add_member_info
 def test_add_no_member_info():
     response = {u'batchcomplete': u'', u'query': {u'categorymembers': []}}
     assert add_member_info(response) == []
-
 
 def test_add_member_info_to_existing_list():
     response = {u'batchcomplete': u'',
@@ -303,7 +291,6 @@ def test_add_member_info_to_existing_list():
                         u'User:Jmorgan (WMF)/sandbox/Test2'}]
     assert add_member_info(response, member_list) == new_member_list
 
-
 def test_add_member_info_to_nonexistent_list():
     response = {u'batchcomplete': u'',
          u'limits': {u'categorymembers': 500},
@@ -333,7 +320,6 @@ def test_add_member_info_to_nonexistent_list():
                     {'profileid': 6849665, 'profile_title':
                     u'User:Jmorgan (WMF)/sandbox/Test2'}]
     assert add_member_info(response) == member_list
-
 
 @raises(KeyError)
 def test_add_bad_result_to_member_info():
